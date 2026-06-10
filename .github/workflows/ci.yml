@@ -1,0 +1,130 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "frontend/**"
+      - "services/**"
+      - "k8s/**"
+      - "deploy/**"
+      - "docker-compose.yml"
+      - ".github/workflows/ci.yml"
+  pull_request:
+    branches:
+      - main
+      - master
+    paths:
+      - "frontend/**"
+      - "services/**"
+      - "k8s/**"
+      - "deploy/**"
+      - "docker-compose.yml"
+      - ".github/workflows/ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  yaml-validate:
+    name: Validate YAML files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install yamllint
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install yamllint
+
+      - name: Lint YAML
+        run: |
+          yamllint -d "{extends: default, rules: {line-length: disable, document-start: disable}}" \
+            docker-compose.yml \
+            k8s \
+            deploy
+
+  frontend:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+  services:
+    name: Service smoke test (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: product-service
+            path: services/product-service
+            port: 4000
+            health: /health
+          - service: user-service
+            path: services/user-service
+            port: 4010
+            health: /health
+    defaults:
+      run:
+        working-directory: ${{ matrix.path }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ${{ matrix.path }}/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Syntax check
+        run: node --check index.js
+
+      - name: Start service and check health endpoint
+        shell: bash
+        run: |
+          PORT=${{ matrix.port }} node index.js > service.log 2>&1 &
+          SERVICE_PID=$!
+          trap "kill ${SERVICE_PID} || true" EXIT
+
+          for i in {1..20}; do
+            if curl -sf "http://127.0.0.1:${{ matrix.port }}${{ matrix.health }}" > /dev/null; then
+              echo "${{ matrix.service }} is healthy"
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "${{ matrix.service }} failed health check"
+          echo "----- service.log -----"
+          cat service.log
+          exit 1

@@ -1,0 +1,41 @@
+[
+  {
+    "id": 1,
+    "customerEmail": "test@example.com",
+    "items": [
+      {
+        "id": 1,
+        "name": "Basic T-Shirt",
+        "price": 9.99,
+        "stock": 100,
+        "qty": 1
+      }
+    ],
+    "total": 9.99,
+    "status": "accepted",
+    "createdAt": "2026-05-27T17:28:08.676Z"
+  },
+  {
+    "customerEmail": "guest",
+    "items": [
+      {
+        "id": 1,
+        "name": "Basic T-Shirt",
+        "price": 9.99,
+        "stock": 100,
+        "qty": 1
+      },
+      {
+        "id": 2,
+        "name": "Coffee Mug",
+        "price": 7.5,
+        "stock": 50,
+        "qty": 1
+      }
+    ],
+    "total": 17.49,
+    "status": "accepted",
+    "createdAt": "2026-05-28T15:31:34.551Z",
+    "id": 2
+  }
+]
