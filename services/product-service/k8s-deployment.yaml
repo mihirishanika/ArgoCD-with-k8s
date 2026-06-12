@@ -28,7 +28,7 @@ spec:
             - name: DB_PASS
               value: root
             - name: DB_NAME
-              value: shop
+              value: argocd
 ---
 apiVersion: v1
 kind: Service
