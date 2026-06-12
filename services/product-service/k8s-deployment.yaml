@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: product-service
-          image: REPLACE_WITH_REGISTRY/product-service:latest
+          image: product-service:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 4000
