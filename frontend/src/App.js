@@ -167,7 +167,7 @@ function App() {
     event.preventDefault();
     setAuthMessage('');
     try {
-      const response = await fetch('http://localhost:4010/register', {
+      const response = await fetch('/register', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(signupForm)
@@ -197,7 +197,7 @@ function App() {
     event.preventDefault();
     setAuthMessage('');
     try {
-      const response = await fetch('http://localhost:4010/login', {
+      const response = await fetch('/login', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(loginForm)
