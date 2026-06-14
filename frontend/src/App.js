@@ -37,6 +37,7 @@ const fallbackProducts = [
 ];
 
 function App() {
+  const BASE_URL = "http://192.168.49.2:30080";
   const [products, setProducts] = useState(fallbackProducts);
   const [query, setQuery] = useState('');
   const [cart, setCart] = useState(() => JSON.parse(localStorage.getItem('cart') || '[]'));
@@ -52,7 +53,7 @@ function App() {
   useEffect(() => {
     const loadProducts = async () => {
       try {
-        const response = await fetch('/products');
+        const response = await fetch(`${BASE_URL}/products`);
         const data = await response.json();
         if (Array.isArray(data) && data.length) {
           setProducts(data);
@@ -146,7 +147,7 @@ function App() {
   };
 
   const saveOrder = async () => {
-    const response = await fetch('/orders', {
+    const response = await fetch(`${BASE_URL}/orders`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
@@ -167,7 +168,7 @@ function App() {
     event.preventDefault();
     setAuthMessage('');
     try {
-      const response = await fetch('/register', {
+      const response = await fetch(`${BASE_URL}/users/register`,{
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(signupForm)
@@ -197,7 +198,7 @@ function App() {
     event.preventDefault();
     setAuthMessage('');
     try {
-      const response = await fetch('/login', {
+      const response = await fetch(`${BASE_URL}/users/login`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(loginForm)
