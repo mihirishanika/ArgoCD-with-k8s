@@ -6,11 +6,11 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/YOUR_USER/YOUR_REPO.git' # REPLACE with your Git repo
+    repoURL: https://github.com/YOUR_USER/YOUR_REPO.git
     targetRevision: HEAD
-    path: '.'
+    path: .
   destination:
-    server: 'https://kubernetes.default.svc'
+    server: https://kubernetes.default.svc
     namespace: default
   syncPolicy:
     automated:
