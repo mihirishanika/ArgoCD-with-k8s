@@ -35,15 +35,15 @@ spec:
       volumes:
         - name: mysql-data
           persistentVolumeClaim:
-              claimName: mysql-pvc
+            claimName: mysql-pvc
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: mysql
 spec:
-  ports:
-    - port: 3306
   selector:
     app: mysql
+  ports:
+    - port: 3306
   type: ClusterIP
