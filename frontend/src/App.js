@@ -37,12 +37,14 @@ const fallbackProducts = [
 ];
 
 function App() {
-  const BASE_URL = "http://192.168.49.2:30080";
   const [products, setProducts] = useState(fallbackProducts);
   const [query, setQuery] = useState('');
   const [cart, setCart] = useState(() => JSON.parse(localStorage.getItem('cart') || '[]'));
   const [page, setPage] = useState('shop');
   const [orderAccepted, setOrderAccepted] = useState(false);
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState('');
   const [authMessage, setAuthMessage] = useState('');
   const [currentUser, setCurrentUser] = useState(() => JSON.parse(localStorage.getItem('currentUser') || 'null'));
   const [redirectAfterAuth, setRedirectAfterAuth] = useState(null);
@@ -53,7 +55,7 @@ function App() {
   useEffect(() => {
     const loadProducts = async () => {
       try {
-        const response = await fetch(`${BASE_URL}/products`);
+        const response = await fetch('/products');
         const data = await response.json();
         if (Array.isArray(data) && data.length) {
           setProducts(data);
@@ -135,6 +137,35 @@ function App() {
     [cart]
   );
 
+  const loadOrders = async () => {
+    setOrdersLoading(true);
+    setOrdersError('');
+    try {
+      const response = await fetch('/orders');
+      if (!response.ok) {
+        throw new Error('Failed to load order history');
+      }
+
+      const data = await response.json();
+      const list = Array.isArray(data) ? data : [];
+      const filtered = currentUser?.email
+        ? list.filter((order) => order.customerEmail === currentUser.email)
+        : list;
+      setOrders(filtered);
+    } catch (error) {
+      setOrders([]);
+      setOrdersError(error.message);
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (page === 'orders') {
+      loadOrders();
+    }
+  }, [page, currentUser]);
+
   const placeOrder = () => {
     if (!currentUser) {
       setAuthMessage('Please login or signup before accepting the order.');
@@ -147,7 +178,7 @@ function App() {
   };
 
   const saveOrder = async () => {
-    const response = await fetch(`${BASE_URL}/orders`, {
+    const response = await fetch('/orders', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
@@ -168,7 +199,7 @@ function App() {
     event.preventDefault();
     setAuthMessage('');
     try {
-      const response = await fetch(`${BASE_URL}/users/register`,{
+      const response = await fetch('/users/register', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(signupForm)
@@ -198,7 +229,7 @@ function App() {
     event.preventDefault();
     setAuthMessage('');
     try {
-      const response = await fetch(`${BASE_URL}/users/login`, {
+      const response = await fetch('/users/login', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(loginForm)
@@ -237,6 +268,8 @@ function App() {
       await saveOrder();
       setOrderAccepted(true);
       setCart([]);
+      await loadOrders();
+      setPage('orders');
       alert('Order saved successfully.');
     } catch (error) {
       alert(error.message);
@@ -276,6 +309,7 @@ function App() {
           <nav style={{display: 'flex', gap: 10, flexWrap: 'wrap'}}>
             {navButton('shop', 'Shopping Page')}
             {navButton('cart', `Cart (${cart.length})`)}
+            {navButton('orders', 'Orders')}
             {!currentUser && navButton('auth', 'Login')}
             {currentUser && (
               <button
@@ -374,6 +408,58 @@ function App() {
                 >
                   Accept
                 </button>
+              </div>
+            )}
+          </section>
+        )}
+
+        {page === 'orders' && (
+          <section style={{maxWidth: 980, margin: '0 auto', background: '#fff', borderRadius: 16, padding: 20, boxShadow: '0 8px 24px rgba(17,34,64,0.08)'}}>
+            <h2 style={{marginTop: 0}}>Order History</h2>
+            <p style={{marginTop: 0, color: '#586174'}}>
+              {currentUser ? `Orders placed by ${currentUser.email}` : 'All orders returned by the order service.'}
+            </p>
+
+            {ordersLoading ? (
+              <p>Loading order history...</p>
+            ) : ordersError ? (
+              <div style={{padding: 12, borderRadius: 10, background: '#fef3c7', color: '#92400e'}}>{ordersError}</div>
+            ) : orders.length === 0 ? (
+              <div style={{padding: 16, border: '1px dashed #d7dce5', borderRadius: 12, color: '#586174'}}>
+                No orders found yet. Place an order to see it appear here.
+              </div>
+            ) : (
+              <div style={{display: 'grid', gap: 12}}>
+                {orders
+                  .slice()
+                  .reverse()
+                  .map((order) => (
+                    <article key={order.id} style={{border: '1px solid #e6eaf2', borderRadius: 12, padding: 16}}>
+                      <div style={{display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap'}}>
+                        <div>
+                          <h3 style={{margin: '0 0 4px'}}>Order #{order.id}</h3>
+                          <div style={{color: '#586174'}}>{order.customerEmail}</div>
+                        </div>
+                        <div style={{textAlign: 'right'}}>
+                          <div style={{fontWeight: 700}}>${Number(order.total).toFixed(2)}</div>
+                          <div style={{color: '#586174'}}>{order.status}</div>
+                        </div>
+                      </div>
+                      <div style={{marginTop: 12, display: 'grid', gap: 8}}>
+                        {(order.items || []).map((item, index) => (
+                          <div key={`${order.id}-${item.id || index}`} style={{display: 'flex', justifyContent: 'space-between', gap: 12, padding: '10px 12px', borderRadius: 10, background: '#f8fafc'}}>
+                            <span>{item.name || 'Item'}</span>
+                            <span>
+                              {item.qty || 1} x ${Number(item.price || 0).toFixed(2)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{marginTop: 12, color: '#586174'}}>
+                        {order.createdAt ? new Date(order.createdAt).toLocaleString() : 'Unknown date'}
+                      </div>
+                    </article>
+                  ))}
               </div>
             )}
           </section>

@@ -85,6 +85,10 @@ jobs:
             path: services/product-service
             port: 4000
             health: /health
+          - service: order-service
+            path: services/order-service
+            port: 4020
+            health: /health
           - service: user-service
             path: services/user-service
             port: 4010

@@ -5,7 +5,8 @@ This repository contains a small e-commerce application built as a set of servic
 ## Overview
 
 - `frontend`: React shopping UI.
-- `product-service`: Node.js API for products and orders.
+- `product-service`: Node.js API for products.
+- `order-service`: Node.js API for order placement and storage.
 - `user-service`: Node.js API for signup and login.
 - `api-gateway`: Nginx gateway that routes requests to the backend services inside the cluster.
 - `mysql`: Optional persistence layer. When MySQL is not available, the services fall back to in-memory data so the app still runs.
@@ -18,14 +19,15 @@ The intended request flow is:
 
 1. Browser opens the React frontend.
 2. Frontend calls the API gateway instead of talking directly to services.
-3. Nginx routes requests to `product-service` or `user-service` by Kubernetes DNS name.
+3. Nginx routes requests to `product-service`, `order-service`, or `user-service` by Kubernetes DNS name.
 4. Services read/write to MySQL when available, otherwise they use memory-backed fallbacks.
 
 Important routes:
 
 - Frontend API base path: `http://api-gateway:8080` in Kubernetes.
 - User auth routes: `/users/register` and `/users/login` through the gateway.
-- Product routes: `/products`, `/orders`, and `/search` through the gateway.
+- Product routes: `/products` and `/search` through the gateway.
+- Order routes: `/orders` through the gateway.
 
 ## Services
 
@@ -42,10 +44,18 @@ Important routes:
   - `GET /products`
   - `GET /search?q=...`
   - `POST /products`
+  - `GET /health`
+- Uses MySQL when reachable, otherwise falls back to sample in-memory products.
+
+### order-service
+
+- Runs on port `4020`.
+- Endpoints:
   - `GET /orders`
+  - `GET /orders/:id`
   - `POST /orders`
   - `GET /health`
-- Uses MySQL when reachable, otherwise falls back to sample in-memory products and JSON-backed order storage.
+- Uses MySQL when reachable, otherwise falls back to JSON-backed order storage.
 
 ### user-service
 
@@ -60,7 +70,8 @@ Important routes:
 ### api-gateway
 
 - Nginx gateway defined in `k8s/apps/api-gateway.yaml`.
-- Routes `/products`, `/orders`, and `/search` to `product-service`.
+- Routes `/products` and `/search` to `product-service`.
+- Routes `/orders` to `order-service`.
 - Routes `/users/register` and `/users/login` to `user-service`.
 - Also keeps direct `/register` and `/login` routes for compatibility.
 
@@ -82,6 +93,14 @@ $env:PORT=4000; npm start
 cd services\user-service
 npm ci
 $env:PORT=4010; npm start
+```
+
+### Start order-service
+
+```powershell
+cd services\order-service
+npm ci
+$env:PORT=4020; npm start
 ```
 
 ### Start frontend
@@ -112,6 +131,7 @@ Each service has a `Dockerfile` for container builds.
 Kubernetes manifests are organized as follows:
 
 - `k8s/apps/product-service.yaml`
+- `k8s/apps/order-service.yaml`
 - `k8s/apps/user-service.yaml`
 - `k8s/apps/frontend-deployment.yaml`
 - `k8s/apps/api-gateway.yaml`
@@ -128,7 +148,8 @@ Before using it, replace the placeholder `repoURL` with your actual Git reposito
 ## Repository Structure
 
 - `frontend/` - React client.
-- `services/product-service/` - Product and order API.
+- `services/product-service/` - Product API.
+- `services/order-service/` - Order API.
 - `services/user-service/` - Authentication API.
 - `k8s/` - Kubernetes manifests.
 - `deploy/argocd/` - Argo CD application manifest.
