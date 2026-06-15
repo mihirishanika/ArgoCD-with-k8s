@@ -1,4 +1,4 @@
-apiVersion: v1
+apiVersion: v
 kind: Secret
 metadata:
   name: mysql-pass
